@@ -1,4 +1,5 @@
 #![cfg_attr(not(test), no_std)]
+#![deny(dead_code)]
 
 mod contract;
 mod types;
