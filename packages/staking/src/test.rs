@@ -532,6 +532,35 @@ fn test_staking_period_as_seconds() {
     assert_eq!(StakingPeriod::TwelveMonths.as_seconds(), 360 * 24 * 60 * 60);
 }
 
+const SECONDS_PER_DAY: u64 = 86_400;
+
+#[test]
+fn test_staking_period_constants_are_whole_days() {
+    use crate::types::{
+        ONE_MONTH_SECONDS, SIX_MONTHS_SECONDS, THREE_MONTHS_SECONDS, TWELVE_MONTHS_SECONDS,
+    };
+    assert_eq!(SECONDS_PER_DAY, 24 * 60 * 60);
+    assert_eq!(ONE_MONTH_SECONDS, 30 * SECONDS_PER_DAY);
+    assert_eq!(THREE_MONTHS_SECONDS, 90 * SECONDS_PER_DAY);
+    assert_eq!(SIX_MONTHS_SECONDS, 180 * SECONDS_PER_DAY);
+    assert_eq!(TWELVE_MONTHS_SECONDS, 360 * SECONDS_PER_DAY);
+    assert_eq!(UNBONDING_PERIOD_SECONDS, 14 * SECONDS_PER_DAY);
+}
+
+#[test]
+fn test_staking_period_seconds_add_to_timestamps_without_overflow() {
+    // Boundary: the largest period must still add cleanly to a far-future
+    // ledger timestamp, and overflow must surface as `None` (which the
+    // contract maps to `StakingError::Overflow`), never a wrap.
+    let far_future: u64 = 100 * 365 * SECONDS_PER_DAY;
+    let longest = StakingPeriod::TwelveMonths.as_seconds();
+    assert!(far_future.checked_add(longest).is_some());
+    assert!(far_future.checked_add(UNBONDING_PERIOD_SECONDS).is_some());
+    assert_eq!(u64::MAX.checked_add(longest), None);
+    assert_eq!(u64::MAX.checked_add(UNBONDING_PERIOD_SECONDS), None);
+    assert_eq!(0u64.checked_add(longest), Some(longest));
+}
+
 #[test]
 fn test_staking_period_from_u32() {
     assert_eq!(StakingPeriod::from_u32(1), Some(StakingPeriod::OneMonth));
